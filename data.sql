@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict y7cBV7PFGduqeVAK54SlccikEUhnoHfKt6Zr8vVk27TRZK3tWqFlZhCk6qb6WhL
+\restrict XWrtzF7Ur4dJ6EebYeESTpz07EhyUja2jCIZv5mvN5OuF53QQealZSZyxdS1UVT
 
 -- Dumped from database version 17.7 (Debian 17.7-3.pgdg13+1)
 -- Dumped by pg_dump version 18.2
@@ -404,5 +404,5 @@ SELECT pg_catalog.setval('public.restaurants_restaurant_id_seq', 3, true);
 -- PostgreSQL database dump complete
 --
 
-\unrestrict y7cBV7PFGduqeVAK54SlccikEUhnoHfKt6Zr8vVk27TRZK3tWqFlZhCk6qb6WhL
+\unrestrict XWrtzF7Ur4dJ6EebYeESTpz07EhyUja2jCIZv5mvN5OuF53QQealZSZyxdS1UVT
 

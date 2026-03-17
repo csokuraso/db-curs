@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict b6eFpvPmc40BxQNF8D9bdoemgMqq9KIjHkIADmdkIlGijsBGIEBfMx1TWaRW14e
+\restrict 5pX1Y2DzVCec3JD3CUqd3MelNpLuvTf0k998k8XGAvkD5V73lCT6XfOcd1KPZsD
 
 -- Dumped from database version 17.7 (Debian 17.7-3.pgdg13+1)
 -- Dumped by pg_dump version 18.2
@@ -263,6 +263,23 @@ CREATE TABLE delivery_mgmt.customers (
 
 
 ALTER TABLE delivery_mgmt.customers OWNER TO postgres;
+
+--
+-- Name: customer_delivery_points; Type: VIEW; Schema: delivery_mgmt; Owner: postgres
+--
+
+CREATE VIEW delivery_mgmt.customer_delivery_points AS
+ SELECT c.full_name,
+    a.city,
+    a.street,
+    a.building,
+    ca.is_default
+   FROM ((delivery_mgmt.customers c
+     JOIN delivery_mgmt.customer_addresses ca ON ((c.customer_id = ca.customer_id)))
+     JOIN delivery_mgmt.addresses a ON ((ca.address_id = a.address_id)));
+
+
+ALTER VIEW delivery_mgmt.customer_delivery_points OWNER TO postgres;
 
 --
 -- Name: customers_customer_id_seq; Type: SEQUENCE; Schema: delivery_mgmt; Owner: postgres
@@ -766,18 +783,6 @@ ALTER SEQUENCE delivery_mgmt.tariffs_tariff_id_seq OWNED BY delivery_mgmt.tariff
 
 
 --
--- Name: user_roles; Type: TABLE; Schema: delivery_mgmt; Owner: postgres
---
-
-CREATE TABLE delivery_mgmt.user_roles (
-    user_id bigint NOT NULL,
-    role_id bigint NOT NULL
-);
-
-
-ALTER TABLE delivery_mgmt.user_roles OWNER TO postgres;
-
---
 -- Name: users; Type: TABLE; Schema: delivery_mgmt; Owner: postgres
 --
 
@@ -793,6 +798,32 @@ CREATE TABLE delivery_mgmt.users (
 
 
 ALTER TABLE delivery_mgmt.users OWNER TO postgres;
+
+--
+-- Name: user_contact_list; Type: VIEW; Schema: delivery_mgmt; Owner: postgres
+--
+
+CREATE VIEW delivery_mgmt.user_contact_list AS
+ SELECT full_name,
+    email,
+    phone,
+    is_activ
+   FROM delivery_mgmt.users;
+
+
+ALTER VIEW delivery_mgmt.user_contact_list OWNER TO postgres;
+
+--
+-- Name: user_roles; Type: TABLE; Schema: delivery_mgmt; Owner: postgres
+--
+
+CREATE TABLE delivery_mgmt.user_roles (
+    user_id bigint NOT NULL,
+    role_id bigint NOT NULL
+);
+
+
+ALTER TABLE delivery_mgmt.user_roles OWNER TO postgres;
 
 --
 -- Name: users_user_id_seq; Type: SEQUENCE; Schema: delivery_mgmt; Owner: postgres
@@ -816,6 +847,105 @@ ALTER SEQUENCE delivery_mgmt.users_user_id_seq OWNED BY delivery_mgmt.users.user
 
 
 --
+-- Name: v_courier_delivery_stat; Type: VIEW; Schema: delivery_mgmt; Owner: postgres
+--
+
+CREATE VIEW delivery_mgmt.v_courier_delivery_stat AS
+ SELECT c.courier_id,
+    c.full_name AS courier_name,
+    c.transport_type,
+    count(d.delivery_id) AS deliveries_count
+   FROM (delivery_mgmt.couriers c
+     LEFT JOIN delivery_mgmt.deliveries d ON ((c.courier_id = d.courier_id)))
+  GROUP BY c.courier_id, c.full_name, c.transport_type;
+
+
+ALTER VIEW delivery_mgmt.v_courier_delivery_stat OWNER TO postgres;
+
+--
+-- Name: v_delivered_orders; Type: VIEW; Schema: delivery_mgmt; Owner: postgres
+--
+
+CREATE VIEW delivery_mgmt.v_delivered_orders AS
+ SELECT o.order_id,
+    c.full_name AS customer_name,
+    r.name AS restaurant_name,
+    o.total_amount,
+    o.delivered_at
+   FROM ((delivery_mgmt.orders o
+     JOIN delivery_mgmt.customers c ON ((o.customer_id = c.customer_id)))
+     JOIN delivery_mgmt.restaurants r ON ((o.restaurant_id = r.restaurant_id)));
+
+
+ALTER VIEW delivery_mgmt.v_delivered_orders OWNER TO postgres;
+
+--
+-- Name: v_delivery_status; Type: VIEW; Schema: delivery_mgmt; Owner: postgres
+--
+
+CREATE VIEW delivery_mgmt.v_delivery_status AS
+ SELECT o.order_id,
+    c.full_name AS customer_name,
+    r.name AS restaurant_name,
+    o.status AS order_status,
+    d.delivery_id,
+    d.status AS delivery_status,
+    d.assigned_at,
+    d.picked_up_at,
+    d.delivered_at,
+    d.distance_km,
+    d.delivery_cost,
+    cr.full_name AS courier_name,
+    cr.phone AS courier_phone,
+    cr.transport_type
+   FROM ((((delivery_mgmt.orders o
+     JOIN delivery_mgmt.customers c ON ((o.customer_id = c.customer_id)))
+     JOIN delivery_mgmt.restaurants r ON ((o.restaurant_id = r.restaurant_id)))
+     LEFT JOIN delivery_mgmt.deliveries d ON ((o.order_id = d.order_id)))
+     LEFT JOIN delivery_mgmt.couriers cr ON ((d.courier_id = cr.courier_id)));
+
+
+ALTER VIEW delivery_mgmt.v_delivery_status OWNER TO postgres;
+
+--
+-- Name: v_order_items_info; Type: VIEW; Schema: delivery_mgmt; Owner: postgres
+--
+
+CREATE VIEW delivery_mgmt.v_order_items_info AS
+ SELECT oi.order_item_id,
+    oi.order_id,
+    mi.name AS menu_item_name,
+    oi.qty,
+    oi.unit_price,
+    oi.line_total
+   FROM (delivery_mgmt.order_items oi
+     JOIN delivery_mgmt.menu_items mi ON ((oi.menu_item_id = mi.menu_item_id)));
+
+
+ALTER VIEW delivery_mgmt.v_order_items_info OWNER TO postgres;
+
+--
+-- Name: v_orders_info; Type: VIEW; Schema: delivery_mgmt; Owner: postgres
+--
+
+CREATE VIEW delivery_mgmt.v_orders_info AS
+ SELECT o.order_id,
+    c.full_name AS customer_name,
+    c.phone AS customer_phone,
+    r.name AS restaurant_name,
+    o.status AS order_status,
+    o.subtotal_amount,
+    o.delivery_fee,
+    o.total_amount,
+    o.created_at
+   FROM ((delivery_mgmt.orders o
+     JOIN delivery_mgmt.customers c ON ((o.customer_id = c.customer_id)))
+     JOIN delivery_mgmt.restaurants r ON ((o.restaurant_id = r.restaurant_id)));
+
+
+ALTER VIEW delivery_mgmt.v_orders_info OWNER TO postgres;
+
+--
 -- Name: restaurants; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -832,6 +962,182 @@ CREATE TABLE public.restaurants (
 
 
 ALTER TABLE public.restaurants OWNER TO postgres;
+
+--
+-- Name: v_restaurant_menu; Type: VIEW; Schema: delivery_mgmt; Owner: postgres
+--
+
+CREATE VIEW delivery_mgmt.v_restaurant_menu AS
+ SELECT mi.menu_item_id,
+    r.name AS restaurant_name,
+    mi.name AS menu_item_name,
+    mi.description,
+    mi.price,
+    mi.is_available
+   FROM (delivery_mgmt.menu_items mi
+     JOIN public.restaurants r ON ((mi.restaurant_id = r.restaurant_id)));
+
+
+ALTER VIEW delivery_mgmt.v_restaurant_menu OWNER TO postgres;
+
+--
+-- Name: v_restaurant_orders_stat; Type: VIEW; Schema: delivery_mgmt; Owner: postgres
+--
+
+CREATE VIEW delivery_mgmt.v_restaurant_orders_stat AS
+ SELECT r.restaurant_id,
+    r.name AS restaurant_name,
+    count(o.order_id) AS orders_count,
+    COALESCE(sum(o.total_amount), (0)::numeric) AS total_orders_sum
+   FROM (delivery_mgmt.restaurants r
+     LEFT JOIN delivery_mgmt.orders o ON ((r.restaurant_id = o.restaurant_id)))
+  GROUP BY r.restaurant_id, r.name;
+
+
+ALTER VIEW delivery_mgmt.v_restaurant_orders_stat OWNER TO postgres;
+
+--
+-- Name: view_active_courier_shifts; Type: VIEW; Schema: delivery_mgmt; Owner: postgres
+--
+
+CREATE VIEW delivery_mgmt.view_active_courier_shifts AS
+ SELECT cs.shift_id,
+    c.full_name AS courier_name,
+    cs.start_time,
+    cs.status
+   FROM (delivery_mgmt.courier_shifts cs
+     JOIN delivery_mgmt.couriers c ON ((cs.courier_id = c.courier_id)))
+  WHERE (cs.status = 'open'::text);
+
+
+ALTER VIEW delivery_mgmt.view_active_courier_shifts OWNER TO postgres;
+
+--
+-- Name: view_active_tariffs; Type: VIEW; Schema: delivery_mgmt; Owner: postgres
+--
+
+CREATE VIEW delivery_mgmt.view_active_tariffs AS
+ SELECT name,
+    base_fee,
+    per_km_fee,
+    service_fee_percent
+   FROM delivery_mgmt.tariffs
+  WHERE (is_active = true);
+
+
+ALTER VIEW delivery_mgmt.view_active_tariffs OWNER TO postgres;
+
+--
+-- Name: view_daily_expenses; Type: VIEW; Schema: delivery_mgmt; Owner: postgres
+--
+
+CREATE VIEW delivery_mgmt.view_daily_expenses AS
+ SELECT e.amount,
+    ec.name AS category,
+    e.description,
+    e.created_at
+   FROM (delivery_mgmt.expenses e
+     JOIN delivery_mgmt.expense_categories ec ON ((e.expense_category_id = ec.expense_category_id)))
+  WHERE (e.expense_date = CURRENT_DATE);
+
+
+ALTER VIEW delivery_mgmt.view_daily_expenses OWNER TO postgres;
+
+--
+-- Name: view_delivery_dispatch_center; Type: VIEW; Schema: delivery_mgmt; Owner: postgres
+--
+
+CREATE VIEW delivery_mgmt.view_delivery_dispatch_center AS
+ SELECT d.delivery_id,
+    COALESCE(cr.full_name, 'Кур’єра не призначено'::text) AS courier_name,
+    cr.transport_type,
+    o.order_id,
+    ((((a.city || ', '::text) || a.street) || ' '::text) || a.building) AS destination,
+    d.status AS delivery_status,
+    d.assigned_at
+   FROM (((delivery_mgmt.deliveries d
+     LEFT JOIN delivery_mgmt.couriers cr ON ((d.courier_id = cr.courier_id)))
+     JOIN delivery_mgmt.orders o ON ((d.order_id = o.order_id)))
+     JOIN delivery_mgmt.addresses a ON ((o.delivery_address_id = a.address_id)));
+
+
+ALTER VIEW delivery_mgmt.view_delivery_dispatch_center OWNER TO postgres;
+
+--
+-- Name: view_detailed_expenses_log; Type: VIEW; Schema: delivery_mgmt; Owner: postgres
+--
+
+CREATE VIEW delivery_mgmt.view_detailed_expenses_log AS
+ SELECT e.expense_id,
+    ec.name AS category_name,
+    e.amount,
+    e.expense_date,
+    e.description,
+    u.full_name AS recorded_by,
+    e.created_at
+   FROM ((delivery_mgmt.expenses e
+     JOIN delivery_mgmt.expense_categories ec ON ((e.expense_category_id = ec.expense_category_id)))
+     LEFT JOIN delivery_mgmt.users u ON ((e.created_by_user_id = u.user_id)))
+  ORDER BY e.expense_date DESC;
+
+
+ALTER VIEW delivery_mgmt.view_detailed_expenses_log OWNER TO postgres;
+
+--
+-- Name: view_expense_control_center; Type: VIEW; Schema: delivery_mgmt; Owner: postgres
+--
+
+CREATE VIEW delivery_mgmt.view_expense_control_center AS
+ SELECT e.expense_id,
+    ec.name AS expense_type,
+    e.amount,
+    e.description,
+    u.full_name AS authorized_by,
+    u.email AS authorizer_email,
+    e.expense_date
+   FROM ((delivery_mgmt.expenses e
+     JOIN delivery_mgmt.expense_categories ec ON ((e.expense_category_id = ec.expense_category_id)))
+     LEFT JOIN delivery_mgmt.users u ON ((e.created_by_user_id = u.user_id)))
+  WHERE (e.amount > (0)::numeric);
+
+
+ALTER VIEW delivery_mgmt.view_expense_control_center OWNER TO postgres;
+
+--
+-- Name: view_restaurant_finance_report; Type: VIEW; Schema: delivery_mgmt; Owner: postgres
+--
+
+CREATE VIEW delivery_mgmt.view_restaurant_finance_report AS
+ SELECT r.name AS restaurant_name,
+    rs.period_start,
+    rs.period_end,
+    rs.gross_amount AS total_revenue,
+    rs.service_commission AS app_fee,
+    rs.net_amount AS restaurant_payout,
+    rs.status AS payment_status,
+    ((rs.service_commission / NULLIF(rs.gross_amount, (0)::numeric)) * (100)::numeric) AS real_commission_rate
+   FROM (delivery_mgmt.restaurant_settlements rs
+     JOIN delivery_mgmt.restaurants r ON ((rs.restaurant_id = r.restaurant_id)))
+  WHERE (rs.gross_amount > (0)::numeric);
+
+
+ALTER VIEW delivery_mgmt.view_restaurant_finance_report OWNER TO postgres;
+
+--
+-- Name: view_restaurant_payout_locations; Type: VIEW; Schema: delivery_mgmt; Owner: postgres
+--
+
+CREATE VIEW delivery_mgmt.view_restaurant_payout_locations AS
+ SELECT r.name AS restaurant,
+    rs.net_amount AS paid_sum,
+    COALESCE(((a.city || ', '::text) || a.street), 'Адреса відсутня'::text) AS location
+   FROM ((delivery_mgmt.restaurant_settlements rs
+     JOIN delivery_mgmt.restaurants r ON ((rs.restaurant_id = r.restaurant_id)))
+     LEFT JOIN delivery_mgmt.addresses a ON ((r.address_id = a.address_id)))
+  WHERE (rs.status = 'paid'::text);
+
+
+ALTER VIEW delivery_mgmt.view_restaurant_payout_locations OWNER TO postgres;
 
 --
 -- Name: restaurants_restaurant_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
@@ -1546,5 +1852,5 @@ ALTER TABLE ONLY public.restaurants
 -- PostgreSQL database dump complete
 --
 
-\unrestrict b6eFpvPmc40BxQNF8D9bdoemgMqq9KIjHkIADmdkIlGijsBGIEBfMx1TWaRW14e
+\unrestrict 5pX1Y2DzVCec3JD3CUqd3MelNpLuvTf0k998k8XGAvkD5V73lCT6XfOcd1KPZsD
 
